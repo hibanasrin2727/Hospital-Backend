@@ -1,37 +1,35 @@
 const userService = require("./user.service");
+const generateToken = require("../../utils/generateToken");
 
 
-// =====================================
-// REGISTER USER
-// =====================================
-
+// REGISTER
 const register = async (req, res) => {
     try {
-
         const user = await userService.registerUser(req.body);
 
         res.status(201).json({
             message: "User registered successfully",
-            user
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                status: user.status
+            }
         });
 
     } catch (error) {
-
         res.status(400).json({
             message: error.message
         });
-
     }
 };
 
 
-// =====================================
-// LOGIN USER
-// =====================================
-
+// LOGIN
 const login = async (req, res) => {
     try {
-
         const { email, password } = req.body;
 
         const user = await userService.loginUser(
@@ -39,28 +37,38 @@ const login = async (req, res) => {
             password
         );
 
+        // Generate JWT token
+        const token = generateToken(
+            user._id,
+            user.role
+        );
+
         res.status(200).json({
             message: "Login successful",
-            user
+
+            token,
+
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                status: user.status
+            }
         });
 
     } catch (error) {
-
         res.status(401).json({
             message: error.message
         });
-
     }
 };
 
 
-// =====================================
 // GET ALL USERS
-// =====================================
-
 const getUsers = async (req, res) => {
     try {
-
         const users = await userService.getAllUsers();
 
         res.status(200).json({
@@ -68,22 +76,16 @@ const getUsers = async (req, res) => {
         });
 
     } catch (error) {
-
         res.status(500).json({
             message: error.message
         });
-
     }
 };
 
 
-// =====================================
-// GET USER BY ID
-// =====================================
-
+// GET ONE USER
 const getUser = async (req, res) => {
     try {
-
         const user = await userService.getUserById(
             req.params.id
         );
@@ -93,22 +95,16 @@ const getUser = async (req, res) => {
         });
 
     } catch (error) {
-
         res.status(404).json({
             message: error.message
         });
-
     }
 };
 
 
-// =====================================
 // UPDATE USER
-// =====================================
-
 const updateUser = async (req, res) => {
     try {
-
         const user = await userService.updateUser(
             req.params.id,
             req.body
@@ -120,22 +116,16 @@ const updateUser = async (req, res) => {
         });
 
     } catch (error) {
-
         res.status(400).json({
             message: error.message
         });
-
     }
 };
 
 
-// =====================================
 // DELETE USER
-// =====================================
-
 const deleteUser = async (req, res) => {
     try {
-
         await userService.deleteUser(
             req.params.id
         );
@@ -145,11 +135,9 @@ const deleteUser = async (req, res) => {
         });
 
     } catch (error) {
-
         res.status(404).json({
             message: error.message
         });
-
     }
 };
 

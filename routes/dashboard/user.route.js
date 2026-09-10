@@ -4,25 +4,22 @@ const router = express.Router();
 
 const userController = require("../../modules/user/user.controller");
 
-
-// GET all users
-
-router.get("/", userController.getUsers);
+const authMiddleware = require("../../middleware/auth.middleware");
+const roleMiddleware = require("../../middleware/role.middleware");
 
 
-// GET one user
+// Only logged-in admin can access user management
 
-router.get("/:id", userController.getUser);
-
-
-// UPDATE user
-
-router.put("/:id", userController.updateUser);
+router.get("/", authMiddleware, roleMiddleware("admin"), userController.getUsers);
 
 
-// DELETE user
+router.get("/:id", authMiddleware, roleMiddleware("admin"), userController.getUser);
 
-router.delete("/:id", userController.deleteUser);
+
+router.put("/:id",authMiddleware,roleMiddleware("admin"),userController.updateUser);
+
+
+router.delete("/:id",authMiddleware,roleMiddleware("admin"),userController.deleteUser);
 
 
 module.exports = router;

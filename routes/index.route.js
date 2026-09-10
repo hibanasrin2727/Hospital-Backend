@@ -3,12 +3,12 @@ const express = require("express");
 const router = express.Router();
 
 
-// Dashboard routes
-const dashboardRoutes = require("./dashboard");
+// Main dashboard router
+const dashboardRoutes = require("./dashboard/dashboard.route");
 
 
-// Website routes
-const websiteRoutes = require("./website");
+// Main website router
+const websiteRoutes = require("./website/website.route");
 
 
 // Dashboard
