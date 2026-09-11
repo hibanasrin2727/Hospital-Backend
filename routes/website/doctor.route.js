@@ -5,8 +5,8 @@ const router = express.Router();
 const doctorService =
     require("../../modules/doctor/doctor.service");
 
-
-router.get("/", async (req, res) => {
+// GET ALL DOCTORS
+router.get("/", async (req, res, next) => {
 
     try {
 
@@ -18,17 +18,13 @@ router.get("/", async (req, res) => {
         });
 
     } catch (error) {
-
-        res.status(500).json({
-            message: error.message
-        });
-
+        next(error);
     }
 
 });
+// GET DOCTOR BY ID
 
-
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req, res, next) => {
 
     try {
 
@@ -42,11 +38,7 @@ router.get("/:id", async (req, res) => {
         });
 
     } catch (error) {
-
-        res.status(404).json({
-            message: error.message
-        });
-
+        next(error);
     }
 
 });

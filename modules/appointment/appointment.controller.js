@@ -4,7 +4,7 @@ const appointmentService =
 
 // CREATE APPOINTMENT
 
-const createAppointment = async (req, res) => {
+const createAppointment = async (req, res, next) => {
     try {
 
         const appointment =
@@ -19,9 +19,7 @@ const createAppointment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -29,7 +27,7 @@ const createAppointment = async (req, res) => {
 
 // GET ALL APPOINTMENTS
 
-const getAppointments = async (req, res) => {
+const getAppointments = async (req, res, next) => {
     try {
 
         const appointments =
@@ -41,17 +39,15 @@ const getAppointments = async (req, res) => {
 
     } catch (error) {
 
-        res.status(500).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
 
 
-// GET ONE APPOINTMENT
+// GET APPOINTMENT BY ID
 
-const getAppointment = async (req, res) => {
+const getAppointment = async (req, res, next) => {
     try {
 
         const appointment =
@@ -65,9 +61,7 @@ const getAppointment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -75,7 +69,7 @@ const getAppointment = async (req, res) => {
 
 // UPDATE APPOINTMENT
 
-const updateAppointment = async (req, res) => {
+const updateAppointment = async (req, res, next) => {
     try {
 
         const appointment =
@@ -91,9 +85,7 @@ const updateAppointment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -101,7 +93,7 @@ const updateAppointment = async (req, res) => {
 
 // DELETE APPOINTMENT
 
-const deleteAppointment = async (req, res) => {
+const deleteAppointment = async (req, res, next) => {
     try {
 
         await appointmentService.deleteAppointment(
@@ -114,18 +106,117 @@ const deleteAppointment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
 
 
+// ======================================
+// PATIENT EDIT OWN APPOINTMENT
+// ======================================
+
+const updatePatientAppointment = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const appointment =
+            await appointmentService.updatePatientAppointment(
+                req.params.id,
+                req.user.userId,
+                req.body
+            );
+
+
+        res.status(200).json({
+
+            message:
+                "Appointment updated successfully",
+
+            appointment
+
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+
+// ======================================
+// PATIENT CANCEL OWN APPOINTMENT
+// ======================================
+
+const cancelPatientAppointment = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const appointment =
+            await appointmentService.cancelPatientAppointment(
+                req.params.id,
+                req.user.userId
+            );
+
+        res.status(200).json({
+
+            message:
+                "Appointment cancelled successfully",
+
+            appointment
+
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+
+// ======================================
+// PATIENT GET OWN APPOINTMENTS
+// ======================================
+
+const getPatientAppointments = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const appointments =
+            await appointmentService.getPatientAppointments(
+                req.user.userId
+            );
+
+        res.status(200).json({
+            appointments
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
 module.exports = {
     createAppointment,
     getAppointments,
     getAppointment,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
+    updatePatientAppointment,
+    cancelPatientAppointment
 };

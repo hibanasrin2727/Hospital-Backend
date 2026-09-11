@@ -16,6 +16,12 @@ const routes = require("./routes/index.route");
 
 app.use("/api", routes);
 
+// Error Handling Middleware
+const errorMiddleware =
+    require("./middleware/error.middleware");
+
+app.use(errorMiddleware);
+
 
 // Port
 const PORT = process.env.PORT || 5000;

@@ -1,9 +1,10 @@
-const departmentService = require("./department.service");
+const departmentService =
+    require("./department.service");
 
 
 // CREATE DEPARTMENT
 
-const createDepartment = async (req, res) => {
+const createDepartment = async (req, res, next) => {
     try {
 
         const department =
@@ -18,9 +19,7 @@ const createDepartment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -28,7 +27,7 @@ const createDepartment = async (req, res) => {
 
 // GET ALL DEPARTMENTS
 
-const getDepartments = async (req, res) => {
+const getDepartments = async (req, res, next) => {
     try {
 
         const departments =
@@ -40,17 +39,15 @@ const getDepartments = async (req, res) => {
 
     } catch (error) {
 
-        res.status(500).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
 
 
-// GET ONE DEPARTMENT
+// GET DEPARTMENT BY ID
 
-const getDepartment = async (req, res) => {
+const getDepartment = async (req, res, next) => {
     try {
 
         const department =
@@ -64,9 +61,7 @@ const getDepartment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -74,7 +69,7 @@ const getDepartment = async (req, res) => {
 
 // UPDATE DEPARTMENT
 
-const updateDepartment = async (req, res) => {
+const updateDepartment = async (req, res, next) => {
     try {
 
         const department =
@@ -90,9 +85,7 @@ const updateDepartment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -100,7 +93,7 @@ const updateDepartment = async (req, res) => {
 
 // DELETE DEPARTMENT
 
-const deleteDepartment = async (req, res) => {
+const deleteDepartment = async (req, res, next) => {
     try {
 
         await departmentService.deleteDepartment(
@@ -113,9 +106,7 @@ const deleteDepartment = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };

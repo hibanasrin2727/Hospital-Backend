@@ -1,5 +1,8 @@
 const Department = require("./department.model");
 
+const AppError =
+    require("../../utils/AppError");
+
 
 // CREATE DEPARTMENT
 
@@ -31,7 +34,10 @@ const getDepartmentById = async (id) => {
     const department = await Department.findById(id);
 
     if (!department) {
-        throw new Error("Department not found");
+        throw new AppError(
+            "Department not found",
+            404
+        );
     }
 
     return department;
@@ -52,7 +58,10 @@ const updateDepartment = async (id, updateData) => {
     );
 
     if (!department) {
-        throw new Error("Department not found");
+        throw new AppError(
+            "Department not found",
+            404
+        );
     }
 
     return department;
@@ -66,7 +75,10 @@ const deleteDepartment = async (id) => {
     const department = await Department.findByIdAndDelete(id);
 
     if (!department) {
-        throw new Error("Department not found");
+        throw new AppError(
+            "Department not found",
+            404
+        );
     }
 
     return department;

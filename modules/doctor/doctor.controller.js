@@ -3,12 +3,11 @@ const doctorService = require("./doctor.service");
 
 // CREATE DOCTOR
 
-const createDoctor = async (req, res) => {
+const createDoctor = async (req, res, next) => {
     try {
 
-        const doctor = await doctorService.createDoctor(
-            req.body
-        );
+        const doctor =
+            await doctorService.createDoctor(req.body);
 
         res.status(201).json({
             message: "Doctor created successfully",
@@ -17,9 +16,7 @@ const createDoctor = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -27,10 +24,11 @@ const createDoctor = async (req, res) => {
 
 // GET ALL DOCTORS
 
-const getDoctors = async (req, res) => {
+const getDoctors = async (req, res, next) => {
     try {
 
-        const doctors = await doctorService.getAllDoctors();
+        const doctors =
+            await doctorService.getAllDoctors();
 
         res.status(200).json({
             doctors
@@ -38,22 +36,21 @@ const getDoctors = async (req, res) => {
 
     } catch (error) {
 
-        res.status(500).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
 
 
-// GET ONE DOCTOR
+// GET DOCTOR BY ID
 
-const getDoctor = async (req, res) => {
+const getDoctor = async (req, res, next) => {
     try {
 
-        const doctor = await doctorService.getDoctorById(
-            req.params.id
-        );
+        const doctor =
+            await doctorService.getDoctorById(
+                req.params.id
+            );
 
         res.status(200).json({
             doctor
@@ -61,9 +58,7 @@ const getDoctor = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -71,13 +66,14 @@ const getDoctor = async (req, res) => {
 
 // UPDATE DOCTOR
 
-const updateDoctor = async (req, res) => {
+const updateDoctor = async (req, res, next) => {
     try {
 
-        const doctor = await doctorService.updateDoctor(
-            req.params.id,
-            req.body
-        );
+        const doctor =
+            await doctorService.updateDoctor(
+                req.params.id,
+                req.body
+            );
 
         res.status(200).json({
             message: "Doctor updated successfully",
@@ -86,9 +82,7 @@ const updateDoctor = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -96,7 +90,7 @@ const updateDoctor = async (req, res) => {
 
 // DELETE DOCTOR
 
-const deleteDoctor = async (req, res) => {
+const deleteDoctor = async (req, res, next) => {
     try {
 
         await doctorService.deleteDoctor(
@@ -109,9 +103,7 @@ const deleteDoctor = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };

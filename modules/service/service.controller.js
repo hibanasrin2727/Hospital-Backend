@@ -1,9 +1,10 @@
-const serviceService = require("./service.service");
+const serviceService =
+    require("./service.service");
 
 
 // CREATE SERVICE
 
-const createService = async (req, res) => {
+const createService = async (req, res, next) => {
     try {
 
         const service =
@@ -18,9 +19,7 @@ const createService = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -28,7 +27,7 @@ const createService = async (req, res) => {
 
 // GET ALL SERVICES
 
-const getServices = async (req, res) => {
+const getServices = async (req, res, next) => {
     try {
 
         const services =
@@ -40,17 +39,15 @@ const getServices = async (req, res) => {
 
     } catch (error) {
 
-        res.status(500).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
 
 
-// GET ONE SERVICE
+// GET SERVICE BY ID
 
-const getService = async (req, res) => {
+const getService = async (req, res, next) => {
     try {
 
         const service =
@@ -64,9 +61,7 @@ const getService = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -74,7 +69,7 @@ const getService = async (req, res) => {
 
 // UPDATE SERVICE
 
-const updateService = async (req, res) => {
+const updateService = async (req, res, next) => {
     try {
 
         const service =
@@ -90,9 +85,7 @@ const updateService = async (req, res) => {
 
     } catch (error) {
 
-        res.status(400).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };
@@ -100,7 +93,7 @@ const updateService = async (req, res) => {
 
 // DELETE SERVICE
 
-const deleteService = async (req, res) => {
+const deleteService = async (req, res, next) => {
     try {
 
         await serviceService.deleteService(
@@ -113,9 +106,7 @@ const deleteService = async (req, res) => {
 
     } catch (error) {
 
-        res.status(404).json({
-            message: error.message
-        });
+        next(error);
 
     }
 };

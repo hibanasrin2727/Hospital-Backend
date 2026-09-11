@@ -1,4 +1,5 @@
 const Doctor = require("./doctor.model");
+const AppError = require("../../utils/AppError")
 
 
 // CREATE DOCTOR
@@ -31,7 +32,10 @@ const getDoctorById = async (id) => {
         .populate("departmentId");
 
     if (!doctor) {
-        throw new Error("Doctor not found");
+        throw new AppError(
+            "Doctor not found",
+            404
+        );
     }
 
     return doctor;
@@ -52,7 +56,10 @@ const updateDoctor = async (id, updateData) => {
     ).populate("departmentId");
 
     if (!doctor) {
-        throw new Error("Doctor not found");
+        throw new AppError(
+            "Doctor not found",
+            404
+        );
     }
 
     return doctor;
@@ -66,7 +73,10 @@ const deleteDoctor = async (id) => {
     const doctor = await Doctor.findByIdAndDelete(id);
 
     if (!doctor) {
-        throw new Error("Doctor not found");
+        throw new AppError(
+            "Doctor not found",
+            404
+        );
     }
 
     return doctor;

@@ -6,32 +6,26 @@ const serviceService =
     require("../../modules/service/service.service");
 
 
-router.get("/", async (req, res) => {
+// GET ALL SERVICES
 
+router.get("/", async (req, res, next) => {
     try {
-
         const services =
             await serviceService.getAllServices();
 
         res.status(200).json({
             services
         });
-
     } catch (error) {
-
-        res.status(500).json({
-            message: error.message
-        });
-
+        next(error);
     }
-
 });
 
 
-router.get("/:id", async (req, res) => {
+// GET SERVICE BY ID
 
+router.get("/:id", async (req, res, next) => {
     try {
-
         const service =
             await serviceService.getServiceById(
                 req.params.id
@@ -40,15 +34,9 @@ router.get("/:id", async (req, res) => {
         res.status(200).json({
             service
         });
-
     } catch (error) {
-
-        res.status(404).json({
-            message: error.message
-        });
-
+        next(error);
     }
-
 });
 
 

@@ -12,7 +12,9 @@ const roleMiddleware =
     require("../../middleware/role.middleware");
 
 
+// ======================================
 // CREATE APPOINTMENT
+// ======================================
 
 router.post(
     "/",
@@ -22,7 +24,9 @@ router.post(
 );
 
 
+// ======================================
 // GET ALL APPOINTMENTS
+// ======================================
 
 router.get(
     "/",
@@ -32,7 +36,31 @@ router.get(
 );
 
 
+// ======================================
+// PATIENT EDIT APPOINTMENT
+// ======================================
+
+router.put(
+    "/patient/:id",
+    authMiddleware,
+    appointmentController.updatePatientAppointment
+);
+
+
+// ======================================
+// PATIENT CANCEL APPOINTMENT
+// ======================================
+
+router.patch(
+    "/patient/:id/cancel",
+    authMiddleware,
+    appointmentController.cancelPatientAppointment
+);
+
+
+// ======================================
 // GET ONE APPOINTMENT
+// ======================================
 
 router.get(
     "/:id",
@@ -42,7 +70,9 @@ router.get(
 );
 
 
+// ======================================
 // UPDATE APPOINTMENT
+// ======================================
 
 router.put(
     "/:id",
@@ -52,7 +82,9 @@ router.put(
 );
 
 
+// ======================================
 // DELETE APPOINTMENT
+// ======================================
 
 router.delete(
     "/:id",

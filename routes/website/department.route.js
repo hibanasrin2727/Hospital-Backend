@@ -6,32 +6,26 @@ const departmentService =
     require("../../modules/department/department.service");
 
 
-router.get("/", async (req, res) => {
+// GET ALL DEPARTMENTS
 
+router.get("/", async (req, res, next) => {
     try {
-
         const departments =
             await departmentService.getAllDepartments();
 
         res.status(200).json({
             departments
         });
-
     } catch (error) {
-
-        res.status(500).json({
-            message: error.message
-        });
-
+        next(error);
     }
-
 });
 
 
-router.get("/:id", async (req, res) => {
+// GET DEPARTMENT BY ID
 
+router.get("/:id", async (req, res, next) => {
     try {
-
         const department =
             await departmentService.getDepartmentById(
                 req.params.id
@@ -40,15 +34,9 @@ router.get("/:id", async (req, res) => {
         res.status(200).json({
             department
         });
-
     } catch (error) {
-
-        res.status(404).json({
-            message: error.message
-        });
-
+        next(error);
     }
-
 });
 
 

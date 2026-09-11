@@ -1,6 +1,9 @@
 const bcrypt = require("bcrypt");
 const User = require("./user.model");
 
+const AppError =
+    require("../../utils/AppError");
+
 
 // ===============================
 // REGISTER USER
@@ -14,7 +17,10 @@ const registerUser = async (userData) => {
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-        throw new Error("Email already registered");
+        throw new AppError(
+            "Email already registered",
+            409
+        );
     }
 
     // Hash password
@@ -42,7 +48,10 @@ const loginUser = async (email, password) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-        throw new Error("Invalid email or password");
+        throw new AppError(
+            "Invalid email or password",
+            401
+        );
     }
 
     // Compare entered password with hashed password
@@ -52,7 +61,10 @@ const loginUser = async (email, password) => {
     );
 
     if (!isPasswordCorrect) {
-        throw new Error("Invalid email or password");
+        throw new AppError(
+            "Invalid email or password",
+            401
+        );
     }
 
     return user;
@@ -83,7 +95,10 @@ const getUserById = async (id) => {
         .select("-password");
 
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError(
+            "User not found",
+            404
+        );
     }
 
     return user;
@@ -106,7 +121,10 @@ const updateUser = async (id, updateData) => {
     ).select("-password");
 
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError(
+            "User not found",
+            404
+        );
     }
 
     return user;
@@ -122,7 +140,10 @@ const deleteUser = async (id) => {
     const user = await User.findByIdAndDelete(id);
 
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError(
+            "User not found",
+            404
+        );
     }
 
     return user;

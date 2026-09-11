@@ -1,5 +1,8 @@
 const Service = require("./service.model");
 
+const AppError =
+    require("../../utils/AppError");
+
 
 // CREATE SERVICE
 
@@ -31,7 +34,10 @@ const getServiceById = async (id) => {
     const service = await Service.findById(id);
 
     if (!service) {
-        throw new Error("Service not found");
+        throw new AppError(
+            "Service not found",
+            404
+        );
     }
 
     return service;
@@ -52,7 +58,10 @@ const updateService = async (id, updateData) => {
     );
 
     if (!service) {
-        throw new Error("Service not found");
+        throw new AppError(
+            "Service not found",
+            404
+        );
     }
 
     return service;
@@ -66,7 +75,10 @@ const deleteService = async (id) => {
     const service = await Service.findByIdAndDelete(id);
 
     if (!service) {
-        throw new Error("Service not found");
+        throw new AppError(
+            "Service not found",
+            404
+        );
     }
 
     return service;

@@ -9,12 +9,12 @@ const authMiddleware =
     require("../../middleware/auth.middleware");
 
 
-// CREATE APPOINTMENT
+// BOOK APPOINTMENT
 
 router.post(
     "/",
     authMiddleware,
-    async (req, res) => {
+    async (req, res, next) => {
 
         try {
 
@@ -35,12 +35,9 @@ router.post(
 
         } catch (error) {
 
-            res.status(400).json({
-                message: error.message
-            });
+            next(error);
 
         }
-
     }
 );
 
