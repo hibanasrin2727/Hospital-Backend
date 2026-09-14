@@ -54,6 +54,14 @@ const loginUser = async (email, password) => {
         );
     }
 
+    // Check account status
+    if (user.status !== "active") {
+        throw new AppError(
+            "Your account is inactive",
+            403
+        );
+    }
+
     // Compare entered password with hashed password
     const isPasswordCorrect = await bcrypt.compare(
         password,
@@ -111,14 +119,44 @@ const getUserById = async (id) => {
 
 const updateUser = async (id, updateData) => {
 
-    const user = await User.findByIdAndUpdate(
-        id,
-        updateData,
-        {
-            new: true,
-            runValidators: true
+    const allowedFields = [
+        "name",
+        "email",
+        "phone",
+        "status"
+    ];
+
+    const safeUpdateData = {};
+
+    // Only allow approved fields to be updated
+    allowedFields.forEach((field) => {
+
+        if (updateData[field] !== undefined) {
+            safeUpdateData[field] =
+                updateData[field];
         }
-    ).select("-password");
+
+    });
+
+    // If password is provided, hash it properly
+    if (updateData.password) {
+
+        safeUpdateData.password =
+            await bcrypt.hash(
+                updateData.password,
+                10
+            );
+    }
+
+    const user =
+        await User.findByIdAndUpdate(
+            id,
+            safeUpdateData,
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        ).select("-password");
 
     if (!user) {
         throw new AppError(

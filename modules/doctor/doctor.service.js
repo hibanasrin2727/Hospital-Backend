@@ -1,8 +1,10 @@
 const Doctor = require("./doctor.model");
-const AppError = require("../../utils/AppError")
+const AppError = require("../../utils/AppError");
 
 
+// ===============================
 // CREATE DOCTOR
+// ===============================
 
 const createDoctor = async (doctorData) => {
 
@@ -12,7 +14,11 @@ const createDoctor = async (doctorData) => {
 };
 
 
+// ===============================
 // GET ALL DOCTORS
+// ===============================
+// Used by ADMIN DASHBOARD
+// Returns active + inactive doctors
 
 const getAllDoctors = async () => {
 
@@ -24,7 +30,27 @@ const getAllDoctors = async () => {
 };
 
 
+// ===============================
+// GET ACTIVE DOCTORS
+// ===============================
+// Used by PUBLIC WEBSITE
+
+const getActiveDoctors = async () => {
+
+    const doctors = await Doctor.find({
+        status: "active"
+    })
+        .populate("departmentId")
+        .sort({ createdAt: -1 });
+
+    return doctors;
+};
+
+
+// ===============================
 // GET DOCTOR BY ID
+// ===============================
+// Used by ADMIN DASHBOARD
 
 const getDoctorById = async (id) => {
 
@@ -32,6 +58,30 @@ const getDoctorById = async (id) => {
         .populate("departmentId");
 
     if (!doctor) {
+
+        throw new AppError(
+            "Doctor not found",
+            404
+        );
+    }
+
+    return doctor;
+};
+// ===============================
+// GET ACTIVE DOCTOR BY ID
+// ===============================
+// Used by PUBLIC WEBSITE
+
+const getActiveDoctorById = async (id) => {
+
+    const doctor = await Doctor.findOne({
+        _id: id,
+        status: "active"
+    })
+        .populate("departmentId");
+
+    if (!doctor) {
+
         throw new AppError(
             "Doctor not found",
             404
@@ -42,20 +92,25 @@ const getDoctorById = async (id) => {
 };
 
 
+// ===============================
 // UPDATE DOCTOR
+// ===============================
 
 const updateDoctor = async (id, updateData) => {
 
-    const doctor = await Doctor.findByIdAndUpdate(
-        id,
-        updateData,
-        {
-            new: true,
-            runValidators: true
-        }
-    ).populate("departmentId");
+    const doctor =
+        await Doctor.findByIdAndUpdate(
+            id,
+            updateData,
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        )
+            .populate("departmentId");
 
     if (!doctor) {
+
         throw new AppError(
             "Doctor not found",
             404
@@ -66,13 +121,17 @@ const updateDoctor = async (id, updateData) => {
 };
 
 
+// ===============================
 // DELETE DOCTOR
+// ===============================
 
 const deleteDoctor = async (id) => {
 
-    const doctor = await Doctor.findByIdAndDelete(id);
+    const doctor =
+        await Doctor.findByIdAndDelete(id);
 
     if (!doctor) {
+
         throw new AppError(
             "Doctor not found",
             404
@@ -83,10 +142,23 @@ const deleteDoctor = async (id) => {
 };
 
 
+// ===============================
+// EXPORTS
+// ===============================
+
 module.exports = {
+
     createDoctor,
+
     getAllDoctors,
+
+    getActiveDoctors,
+
     getDoctorById,
+
+    getActiveDoctorById,
+
     updateDoctor,
+
     deleteDoctor
 };

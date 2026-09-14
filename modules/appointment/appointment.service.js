@@ -1,21 +1,205 @@
 const Appointment = require("./appointment.model");
+
 const Doctor = require("../doctor/doctor.model");
+
 const Department = require("../department/department.model");
 
-const AppError =
-    require("../../utils/AppError");
+const User = require("../user/user.model");
+
+const AppError = require("../../utils/AppError");
 
 
-// ======================================
+// =====================================================
+// CHECK DOCTOR AVAILABILITY
+// =====================================================
+
+const isDoctorAvailable = (schedule, date, time) => {
+
+    if (!schedule || !date || !time) {
+        return false;
+    }
+
+    const selectedDate = new Date(date);
+
+    if (isNaN(selectedDate.getTime())) {
+        return false;
+    }
+
+    const selectedDay = selectedDate.toLocaleDateString(
+        "en-US",
+        {
+            weekday: "long"
+        }
+    );
+
+    // Example:
+    // Monday-Saturday 10:00 AM-3:00 PM
+    // Monday - Saturday, 10:00 AM - 3:00 PM
+
+    const schedulePattern =
+        /([A-Za-z]+)\s*-\s*([A-Za-z]+).*?(\d{1,2}:\d{2}\s*(?:AM|PM))\s*-\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i;
+
+    const match = schedule.match(schedulePattern);
+
+    if (!match) {
+        return false;
+    }
+
+    const startDay = match[1];
+    const endDay = match[2];
+    const startTime = match[3];
+    const endTime = match[4];
+
+    const days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+    ];
+
+    const startDayIndex = days.indexOf(startDay);
+    const endDayIndex = days.indexOf(endDay);
+    const selectedDayIndex = days.indexOf(selectedDay);
+
+    if (
+        startDayIndex === -1 ||
+        endDayIndex === -1 ||
+        selectedDayIndex === -1
+    ) {
+        return false;
+    }
+
+
+    // =================================================
+    // CHECK WORKING DAY
+    // =================================================
+
+    let validDay = false;
+
+    if (startDayIndex <= endDayIndex) {
+
+        validDay =
+            selectedDayIndex >= startDayIndex &&
+            selectedDayIndex <= endDayIndex;
+
+    } else {
+
+        // Handles schedules such as:
+        // Friday - Monday
+
+        validDay =
+            selectedDayIndex >= startDayIndex ||
+            selectedDayIndex <= endDayIndex;
+    }
+
+    if (!validDay) {
+        return false;
+    }
+
+
+    // =================================================
+    // CONVERT TIME TO MINUTES
+    // =================================================
+
+    const convertTimeToMinutes = (timeString) => {
+
+        const timeMatch = timeString.match(
+            /(\d{1,2}):(\d{2})\s*(AM|PM)/i
+        );
+
+        if (!timeMatch) {
+            return null;
+        }
+
+        let hour = parseInt(timeMatch[1]);
+
+        const minute = parseInt(timeMatch[2]);
+
+        const period = timeMatch[3].toUpperCase();
+
+        if (hour === 12) {
+            hour = 0;
+        }
+
+        if (period === "PM") {
+            hour += 12;
+        }
+
+        return hour * 60 + minute;
+    };
+
+
+    const appointmentMinutes =
+        convertTimeToMinutes(time);
+
+    const scheduleStartMinutes =
+        convertTimeToMinutes(startTime);
+
+    const scheduleEndMinutes =
+        convertTimeToMinutes(endTime);
+
+    if (
+        appointmentMinutes === null ||
+        scheduleStartMinutes === null ||
+        scheduleEndMinutes === null
+    ) {
+        return false;
+    }
+
+    return (
+        appointmentMinutes >= scheduleStartMinutes &&
+        appointmentMinutes <= scheduleEndMinutes
+    );
+};
+
+
+// =====================================================
+// VALIDATE FUTURE DATE
+// =====================================================
+
+const isValidFutureDate = (date) => {
+
+    if (!date) {
+        return false;
+    }
+
+    const selectedDate = new Date(date);
+
+    if (isNaN(selectedDate.getTime())) {
+        return false;
+    }
+
+    const today = new Date();
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    selectedDate.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    return selectedDate >= today;
+};
+
+
+// =====================================================
 // CREATE APPOINTMENT
-// ======================================
+// =====================================================
 
 const createAppointment = async (appointmentData) => {
 
     const {
         patientId,
-        patientName,
-        phone,
         doctorId,
         departmentId,
         date,
@@ -24,12 +208,12 @@ const createAppointment = async (appointmentData) => {
     } = appointmentData;
 
 
-    // CHECK REQUIRED FIELDS
+    // =================================================
+    // REQUIRED FIELDS
+    // =================================================
 
     if (
         !patientId ||
-        !patientName ||
-        !phone ||
         !doctorId ||
         !departmentId ||
         !date ||
@@ -37,59 +221,100 @@ const createAppointment = async (appointmentData) => {
         !reason
     ) {
         throw new AppError(
-            "All appointment fields are required",
+            "All required appointment fields must be provided",
             400
         );
     }
 
 
-    // CHECK DOCTOR EXISTS
+    // =================================================
+    // VALIDATE REASON
+    // =================================================
 
-    const doctor =
-        await Doctor.findById(doctorId);
+    const trimmedReason = String(reason).trim();
+
+    if (trimmedReason.length < 3) {
+        throw new AppError(
+            "Reason must contain at least 3 characters",
+            400
+        );
+    }
+
+    if (trimmedReason.length > 500) {
+        throw new AppError(
+            "Reason cannot exceed 500 characters",
+            400
+        );
+    }
+
+
+    // =================================================
+    // VALIDATE DATE
+    // =================================================
+
+    if (!isValidFutureDate(date)) {
+        throw new AppError(
+            "Appointment date must be today or a future date",
+            400
+        );
+    }
+
+
+    // =================================================
+    // CHECK PATIENT
+    // =================================================
+
+    const patient = await User.findOne({
+        _id: patientId,
+        role: "patient",
+        status: "active"
+    });
+
+    if (!patient) {
+        throw new AppError(
+            "Active patient not found",
+            404
+        );
+    }
+
+
+    // =================================================
+    // CHECK DOCTOR
+    // =================================================
+
+    const doctor = await Doctor.findOne({
+        _id: doctorId,
+        status: "active"
+    });
 
     if (!doctor) {
         throw new AppError(
-            "Doctor not found",
+            "Doctor not found or inactive",
             404
         );
     }
 
 
-    // CHECK DOCTOR STATUS
+    // =================================================
+    // CHECK DEPARTMENT
+    // =================================================
 
-    if (doctor.status !== "active") {
-        throw new AppError(
-            "Doctor is currently inactive",
-            400
-        );
-    }
-
-
-    // CHECK DEPARTMENT EXISTS
-
-    const department =
-        await Department.findById(departmentId);
+    const department = await Department.findOne({
+        _id: departmentId,
+        status: "active"
+    });
 
     if (!department) {
         throw new AppError(
-            "Department not found",
+            "Department not found or inactive",
             404
         );
     }
 
 
-    // CHECK DEPARTMENT STATUS
-
-    if (department.status !== "active") {
-        throw new AppError(
-            "Department is currently inactive",
-            400
-        );
-    }
-
-
-    // CHECK DOCTOR BELONGS TO DEPARTMENT
+    // =================================================
+    // CHECK DOCTOR-DEPARTMENT MATCH
+    // =================================================
 
     if (
         doctor.departmentId.toString() !==
@@ -102,7 +327,27 @@ const createAppointment = async (appointmentData) => {
     }
 
 
-    // CHECK DOCTOR SLOT
+    // =================================================
+    // CHECK DOCTOR SCHEDULE
+    // =================================================
+
+    if (
+        !isDoctorAvailable(
+            doctor.schedule,
+            date,
+            time
+        )
+    ) {
+        throw new AppError(
+            "Doctor is not available at the selected date and time",
+            400
+        );
+    }
+
+
+    // =================================================
+    // CHECK APPOINTMENT CONFLICT
+    // =================================================
 
     const existingAppointment =
         await Appointment.findOne({
@@ -112,81 +357,83 @@ const createAppointment = async (appointmentData) => {
             status: {
                 $in: [
                     "pending",
-                    "confirmed",
-                    "rescheduled"
+                    "confirmed"
                 ]
             }
         });
 
-
     if (existingAppointment) {
         throw new AppError(
-            "This doctor already has an appointment at this time",
+            "This appointment slot is already booked",
             409
         );
     }
 
 
+    // =================================================
     // CREATE APPOINTMENT
+    // =================================================
 
-    const appointment =
-        await Appointment.create(
-            appointmentData
-        );
+    const appointment = await Appointment.create({
+
+        patientId,
+
+        // Get patient details from database
+        patientName: patient.name,
+
+        phone: patient.phone,
+
+        doctorId,
+
+        departmentId,
+
+        date,
+
+        time,
+
+        reason: trimmedReason,
+
+        status: "pending"
+    });
 
     return appointment;
 };
 
 
-// ======================================
+// =====================================================
 // GET ALL APPOINTMENTS
-// ======================================
+// =====================================================
 
 const getAllAppointments = async () => {
 
-    const appointments =
-        await Appointment.find()
-            .populate(
-                "patientId",
-                "name email phone"
-            )
-            .populate(
-                "doctorId",
-                "name specialization"
-            )
-            .populate(
-                "departmentId",
-                "name"
-            )
-            .sort({
-                createdAt: -1
-            });
+    const appointments = await Appointment.find()
+        .populate(
+            "patientId",
+            "-password"
+        )
+        .populate("doctorId")
+        .populate("departmentId")
+        .sort({
+            createdAt: -1
+        });
 
     return appointments;
 };
 
 
-// ======================================
+// =====================================================
 // GET APPOINTMENT BY ID
-// ======================================
+// =====================================================
 
 const getAppointmentById = async (id) => {
 
-    const appointment =
-        await Appointment.findById(id)
-            .populate(
-                "patientId",
-                "name email phone"
-            )
-            .populate(
-                "doctorId",
-                "name specialization"
-            )
-            .populate(
-                "departmentId",
-                "name"
-            );
-
+    const appointment = await Appointment.findById(id)
+        .populate(
+            "patientId",
+            "-password"
+        )
+        .populate("doctorId")
+        .populate("departmentId");
 
     if (!appointment) {
         throw new AppError(
@@ -195,275 +442,20 @@ const getAppointmentById = async (id) => {
         );
     }
 
-
     return appointment;
 };
 
 
-// ======================================
-// UPDATE APPOINTMENT
-// ======================================
+// =====================================================
+// UPDATE APPOINTMENT - ADMIN
+// =====================================================
 
 const updateAppointment = async (
     id,
     updateData
 ) => {
 
-    // FIND EXISTING APPOINTMENT
-
-    const existingAppointment =
-        await Appointment.findById(id);
-
-
-    if (!existingAppointment) {
-        throw new AppError(
-            "Appointment not found",
-            404
-        );
-    }
-
-
-    // ======================================
-    // CHECK APPOINTMENT STATUS
-    // ======================================
-
-    if (updateData.status) {
-
-        const allowedStatuses = [
-            "pending",
-            "confirmed",
-            "rescheduled",
-            "cancelled",
-            "completed"
-        ];
-
-
-        if (
-            !allowedStatuses.includes(
-                updateData.status
-            )
-        ) {
-            throw new AppError(
-                "Invalid appointment status",
-                400
-            );
-        }
-    }
-
-
-    // ======================================
-    // CHECK STATUS TRANSITION
-    // ======================================
-
-    if (updateData.status) {
-
-        const currentStatus =
-            existingAppointment.status;
-
-        const newStatus =
-            updateData.status;
-
-
-        const allowedTransitions = {
-
-            pending: [
-                "confirmed",
-                "rescheduled",
-                "cancelled"
-            ],
-
-            confirmed: [
-                "rescheduled",
-                "cancelled",
-                "completed"
-            ],
-
-            rescheduled: [
-                "confirmed",
-                "cancelled"
-            ],
-
-            cancelled: [],
-
-            completed: []
-
-        };
-
-
-        if (
-            !allowedTransitions[currentStatus]
-                .includes(newStatus)
-        ) {
-
-            throw new AppError(
-                `Cannot change appointment status from ${currentStatus} to ${newStatus}`,
-                400
-            );
-
-        }
-    }
-
-
-    // ======================================
-    // USE NEW VALUE OR OLD VALUE
-    // ======================================
-
-    const doctorId =
-        updateData.doctorId ||
-        existingAppointment.doctorId;
-
-    const departmentId =
-        updateData.departmentId ||
-        existingAppointment.departmentId;
-
-    const date =
-        updateData.date ||
-        existingAppointment.date;
-
-    const time =
-        updateData.time ||
-        existingAppointment.time;
-
-
-    // ======================================
-    // CHECK DOCTOR
-    // ======================================
-
-    const doctor =
-        await Doctor.findById(doctorId);
-
-
-    if (!doctor) {
-        throw new AppError(
-            "Doctor not found",
-            404
-        );
-    }
-
-
-    // CHECK DOCTOR STATUS
-
-    if (doctor.status !== "active") {
-        throw new AppError(
-            "Doctor is currently inactive",
-            400
-        );
-    }
-
-
-    // ======================================
-    // CHECK DEPARTMENT
-    // ======================================
-
-    const department =
-        await Department.findById(
-            departmentId
-        );
-
-
-    if (!department) {
-        throw new AppError(
-            "Department not found",
-            404
-        );
-    }
-
-
-    // CHECK DEPARTMENT STATUS
-
-    if (department.status !== "active") {
-        throw new AppError(
-            "Department is currently inactive",
-            400
-        );
-    }
-
-
-    // ======================================
-    // CHECK DOCTOR BELONGS TO DEPARTMENT
-    // ======================================
-
-    if (
-        doctor.departmentId.toString() !==
-        departmentId.toString()
-    ) {
-        throw new AppError(
-            "Doctor does not belong to the selected department",
-            400
-        );
-    }
-
-
-    // ======================================
-    // CHECK APPOINTMENT CONFLICT
-    // ======================================
-
-    const conflict =
-        await Appointment.findOne({
-            _id: {
-                $ne: id
-            },
-            doctorId,
-            date,
-            time,
-            status: {
-                $in: [
-                    "pending",
-                    "confirmed",
-                    "rescheduled"
-                ]
-            }
-        });
-
-
-    if (conflict) {
-        throw new AppError(
-            "This doctor already has another appointment at this time",
-            409
-        );
-    }
-
-
-    // ======================================
-    // UPDATE APPOINTMENT
-    // ======================================
-
-    const appointment =
-        await Appointment.findByIdAndUpdate(
-            id,
-            updateData,
-            {
-                new: true,
-                runValidators: true
-            }
-        )
-            .populate(
-                "patientId",
-                "name email phone"
-            )
-            .populate(
-                "doctorId",
-                "name specialization"
-            )
-            .populate(
-                "departmentId",
-                "name"
-            );
-
-
-    return appointment;
-};
-
-
-// ======================================
-// DELETE APPOINTMENT
-// ======================================
-
-const deleteAppointment = async (id) => {
-
-    const appointment =
-        await Appointment.findByIdAndDelete(id);
-
+    const appointment = await Appointment.findById(id);
 
     if (!appointment) {
         throw new AppError(
@@ -473,13 +465,313 @@ const deleteAppointment = async (id) => {
     }
 
 
+    // =================================================
+    // ALLOWED UPDATE FIELDS
+    // =================================================
+
+    const allowedFields = [
+        "doctorId",
+        "departmentId",
+        "date",
+        "time",
+        "reason",
+        "status",
+        "notes"
+    ];
+
+    const safeUpdateData = {};
+
+    allowedFields.forEach((field) => {
+
+        if (updateData[field] !== undefined) {
+            safeUpdateData[field] =
+                updateData[field];
+        }
+    });
+
+
+    // =================================================
+    // STATUS WORKFLOW
+    // =================================================
+
+    const allowedTransitions = {
+
+        pending: [
+            "confirmed",
+            "rescheduled",
+            "cancelled"
+        ],
+
+        confirmed: [
+            "rescheduled",
+            "cancelled",
+            "completed"
+        ],
+
+        rescheduled: [
+            "confirmed",
+            "cancelled"
+        ],
+
+        cancelled: [],
+
+        completed: []
+    };
+
+
+    if (
+        safeUpdateData.status &&
+        safeUpdateData.status !== appointment.status
+    ) {
+
+        const allowedNextStatuses =
+            allowedTransitions[
+            appointment.status
+            ] || [];
+
+        if (
+            !allowedNextStatuses.includes(
+                safeUpdateData.status
+            )
+        ) {
+            throw new AppError(
+                `Cannot change appointment status from ${appointment.status} to ${safeUpdateData.status}`,
+                400
+            );
+        }
+    }
+
+
+    // =================================================
+    // VALIDATE DATE
+    // =================================================
+
+    if (safeUpdateData.date) {
+
+        if (
+            !isValidFutureDate(
+                safeUpdateData.date
+            )
+        ) {
+            throw new AppError(
+                "Appointment date must be today or a future date",
+                400
+            );
+        }
+    }
+
+
+    // =================================================
+    // VALIDATE REASON
+    // =================================================
+
+    if (
+        safeUpdateData.reason !== undefined
+    ) {
+
+        const reason =
+            String(
+                safeUpdateData.reason
+            ).trim();
+
+        if (reason.length < 3) {
+            throw new AppError(
+                "Reason must contain at least 3 characters",
+                400
+            );
+        }
+
+        if (reason.length > 500) {
+            throw new AppError(
+                "Reason cannot exceed 500 characters",
+                400
+            );
+        }
+
+        safeUpdateData.reason = reason;
+    }
+
+
+    // =================================================
+    // CHECK DETAILS ONLY IF CHANGED
+    // =================================================
+
+    const detailsChanged =
+        safeUpdateData.doctorId ||
+        safeUpdateData.departmentId ||
+        safeUpdateData.date ||
+        safeUpdateData.time;
+
+
+    if (detailsChanged) {
+
+        const doctorId =
+            safeUpdateData.doctorId ||
+            appointment.doctorId;
+
+        const departmentId =
+            safeUpdateData.departmentId ||
+            appointment.departmentId;
+
+        const date =
+            safeUpdateData.date ||
+            appointment.date;
+
+        const time =
+            safeUpdateData.time ||
+            appointment.time;
+
+
+        // =============================================
+        // CHECK DOCTOR
+        // =============================================
+
+        const doctor = await Doctor.findOne({
+            _id: doctorId,
+            status: "active"
+        });
+
+        if (!doctor) {
+            throw new AppError(
+                "Doctor not found or inactive",
+                404
+            );
+        }
+
+
+        // =============================================
+        // CHECK DEPARTMENT
+        // =============================================
+
+        const department =
+            await Department.findOne({
+                _id: departmentId,
+                status: "active"
+            });
+
+        if (!department) {
+            throw new AppError(
+                "Department not found or inactive",
+                404
+            );
+        }
+
+
+        // =============================================
+        // CHECK DOCTOR-DEPARTMENT
+        // =============================================
+
+        if (
+            doctor.departmentId.toString() !==
+            departmentId.toString()
+        ) {
+            throw new AppError(
+                "Doctor does not belong to the selected department",
+                400
+            );
+        }
+
+
+        // =============================================
+        // CHECK DOCTOR SCHEDULE
+        // =============================================
+
+        if (
+            !isDoctorAvailable(
+                doctor.schedule,
+                date,
+                time
+            )
+        ) {
+            throw new AppError(
+                "Doctor is not available at the selected date and time",
+                400
+            );
+        }
+
+
+        // =============================================
+        // CHECK CONFLICT
+        // =============================================
+
+        const conflict =
+            await Appointment.findOne({
+
+                _id: {
+                    $ne: id
+                },
+
+                doctorId,
+
+                date,
+
+                time,
+
+                status: {
+                    $in: [
+                        "pending",
+                        "confirmed"
+                    ]
+                }
+            });
+
+        if (conflict) {
+            throw new AppError(
+                "This appointment slot is already booked",
+                409
+            );
+        }
+    }
+
+
+    // =================================================
+    // UPDATE APPOINTMENT
+    // =================================================
+
+    const updatedAppointment =
+        await Appointment.findByIdAndUpdate(
+            id,
+            safeUpdateData,
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        )
+            .populate(
+                "patientId",
+            "-password"
+        )
+            .populate("doctorId")
+            .populate("departmentId");
+
+
+    return updatedAppointment;
+};
+
+
+// =====================================================
+// DELETE APPOINTMENT
+// =====================================================
+
+const deleteAppointment = async (id) => {
+
+    const appointment =
+        await Appointment.findByIdAndDelete(id);
+
+    if (!appointment) {
+        throw new AppError(
+            "Appointment not found",
+            404
+        );
+    }
+
     return appointment;
 };
 
 
-// ======================================
-// PATIENT EDIT OWN APPOINTMENT
-// ======================================
+// =====================================================
+// UPDATE PATIENT APPOINTMENT
+// =====================================================
 
 const updatePatientAppointment = async (
     id,
@@ -487,102 +779,171 @@ const updatePatientAppointment = async (
     updateData
 ) => {
 
-    // FIND APPOINTMENT
+    // =================================================
+    // CHECK OWNERSHIP
+    // =================================================
 
     const appointment =
-        await Appointment.findById(id);
-
+        await Appointment.findOne({
+            _id: id,
+            patientId
+        });
 
     if (!appointment) {
-
         throw new AppError(
             "Appointment not found",
             404
         );
-
     }
 
 
-    // CHECK OWNERSHIP
+    // =================================================
+    // COMPLETED/CANCELLED CANNOT BE EDITED
+    // =================================================
 
     if (
-        appointment.patientId.toString() !==
-        patientId.toString()
+        appointment.status === "completed" ||
+        appointment.status === "cancelled"
     ) {
-
-        throw new AppError(
-            "You can only edit your own appointment",
-            403
-        );
-
-    }
-
-
-    // CHECK APPOINTMENT STATUS
-
-    if (
-        appointment.status === "cancelled" ||
-        appointment.status === "completed"
-    ) {
-
         throw new AppError(
             "This appointment cannot be edited",
             400
         );
-
     }
 
 
-    // PATIENT CAN ONLY EDIT THESE FIELDS
-
-    const allowedFields = [
-        "date",
-        "time",
-        "reason"
-    ];
-
-
-    const filteredData = {};
+    const {
+        doctorId,
+        departmentId,
+        date,
+        time,
+        reason
+    } = updateData;
 
 
-    allowedFields.forEach((field) => {
-
-        if (
-            updateData[field] !== undefined
-        ) {
-
-            filteredData[field] =
-                updateData[field];
-
-        }
-
-    });
-
-
-    // CHECK IF THERE IS ANYTHING TO UPDATE
+    // =================================================
+    // REQUIRED FIELDS
+    // =================================================
 
     if (
-        Object.keys(filteredData).length === 0
+        !doctorId ||
+        !departmentId ||
+        !date ||
+        !time ||
+        !reason
     ) {
-
         throw new AppError(
-            "No valid fields to update",
+            "Doctor, department, date, time and reason are required",
             400
         );
-
     }
 
 
-    // CHECK DOCTOR SLOT IF DATE/TIME CHANGES
+    // =================================================
+    // VALIDATE DATE
+    // =================================================
 
-    const newDate =
-        filteredData.date ||
-        appointment.date;
+    if (!isValidFutureDate(date)) {
+        throw new AppError(
+            "Appointment date must be today or a future date",
+            400
+        );
+    }
 
-    const newTime =
-        filteredData.time ||
-        appointment.time;
 
+    // =================================================
+    // VALIDATE REASON
+    // =================================================
+
+    const trimmedReason =
+        String(reason).trim();
+
+    if (trimmedReason.length < 3) {
+        throw new AppError(
+            "Reason must contain at least 3 characters",
+            400
+        );
+    }
+
+    if (trimmedReason.length > 500) {
+        throw new AppError(
+            "Reason cannot exceed 500 characters",
+            400
+        );
+    }
+
+
+    // =================================================
+    // CHECK DOCTOR
+    // =================================================
+
+    const doctor = await Doctor.findOne({
+        _id: doctorId,
+        status: "active"
+    });
+
+    if (!doctor) {
+        throw new AppError(
+            "Doctor not found or inactive",
+            404
+        );
+    }
+
+
+    // =================================================
+    // CHECK DEPARTMENT
+    // =================================================
+
+    const department =
+        await Department.findOne({
+            _id: departmentId,
+            status: "active"
+        });
+
+    if (!department) {
+        throw new AppError(
+            "Department not found or inactive",
+            404
+        );
+    }
+
+
+    // =================================================
+    // CHECK DOCTOR-DEPARTMENT
+    // =================================================
+
+    if (
+        doctor.departmentId.toString() !==
+        departmentId.toString()
+    ) {
+        throw new AppError(
+            "Doctor does not belong to the selected department",
+            400
+        );
+    }
+
+
+    // =================================================
+    // CHECK DOCTOR SCHEDULE
+    // =================================================
+
+    if (
+        !isDoctorAvailable(
+            doctor.schedule,
+            date,
+            time
+        )
+    ) {
+        throw new AppError(
+            "Doctor is not available at the selected date and time",
+            400
+        );
+    }
+
+
+    // =================================================
+    // CHECK CONFLICT
+    // =================================================
 
     const conflict =
         await Appointment.findOne({
@@ -591,154 +952,155 @@ const updatePatientAppointment = async (
                 $ne: id
             },
 
-            doctorId:
-                appointment.doctorId,
+            doctorId,
 
-            date: newDate,
+            date,
 
-            time: newTime,
+            time,
 
             status: {
                 $in: [
                     "pending",
-                    "confirmed",
-                    "rescheduled"
+                    "confirmed"
                 ]
             }
-
         });
 
-
     if (conflict) {
-
         throw new AppError(
-            "This doctor already has another appointment at this time",
+            "This appointment slot is already booked",
             409
         );
-
     }
 
 
-    // UPDATE APPOINTMENT
+    // =================================================
+    // UPDATE
+    // =================================================
 
     const updatedAppointment =
         await Appointment.findByIdAndUpdate(
-
             id,
-
-            filteredData,
-
             {
-                new: true,
+                doctorId,
+                departmentId,
+                date,
+                time,
+                reason: trimmedReason
+            },
+            {
+                returnDocument: "after",
                 runValidators: true
             }
-
         )
             .populate(
-                "doctorId",
-                "name specialization"
-            )
-            .populate(
-                "departmentId",
-                "name"
-            );
+            "patientId",
+            "-password"
+        )
+            .populate("doctorId")
+            .populate("departmentId");
 
 
     return updatedAppointment;
 };
 
 
-// ======================================
-// PATIENT CANCEL OWN APPOINTMENT
-// ======================================
+// =====================================================
+// CANCEL PATIENT APPOINTMENT
+// =====================================================
 
 const cancelPatientAppointment = async (
     id,
     patientId
 ) => {
 
-// FIND APPOINTMENT
+    // =================================================
+    // CHECK OWNERSHIP
+    // =================================================
 
     const appointment =
-        await Appointment.findById(id);
-
+        await Appointment.findOne({
+            _id: id,
+            patientId
+        });
 
     if (!appointment) {
-
         throw new AppError(
             "Appointment not found",
             404
         );
-
     }
 
 
-    // CHECK OWNERSHIP
-
-    if (
-        appointment.patientId.toString() !==
-        patientId.toString()
-    ) {
-
-        throw new AppError(
-            "You can only cancel your own appointment",
-            403
-        );
-
-    }
-
-
-    // CHECK CURRENT STATUS
+    // =================================================
+    // ALREADY CANCELLED
+    // =================================================
 
     if (
         appointment.status === "cancelled"
     ) {
-
         throw new AppError(
             "Appointment is already cancelled",
             400
         );
-
     }
 
+
+    // =================================================
+    // COMPLETED CANNOT BE CANCELLED
+    // =================================================
 
     if (
         appointment.status === "completed"
     ) {
-
         throw new AppError(
             "Completed appointment cannot be cancelled",
             400
         );
-
     }
 
 
-    // CANCEL APPOINTMENT
+    // =================================================
+    // CANCEL
+    // =================================================
 
-    appointment.status = "cancelled";
+    const updatedAppointment =
+        await Appointment.findByIdAndUpdate(
+            id,
+            {
+                status: "cancelled"
+            },
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        )
+            .populate(
+                "patientId",
+                "-password"
+            )
+            .populate("doctorId")
+            .populate("departmentId");
 
-    await appointment.save();
 
-
-    return appointment;
+    return updatedAppointment;
 };
 
-// GET PATIENT OWN APPOINTMENTS
-const getPatientAppointments = async (patientId) => {
+
+// =====================================================
+// GET PATIENT APPOINTMENTS
+// =====================================================
+
+const getPatientAppointments = async (
+    patientId
+) => {
 
     const appointments =
         await Appointment.find({
-            patientId: patientId
+            patientId
         })
-            .populate(
-                "doctorId",
-                "name specialization"
-            )
-            .populate(
-                "departmentId",
-                "name"
-            )
+            .populate("doctorId")
+            .populate("departmentId")
             .sort({
                 createdAt: -1
             });
@@ -746,17 +1108,26 @@ const getPatientAppointments = async (patientId) => {
     return appointments;
 };
 
-// ======================================
-// EXPORT FUNCTIONS
-// ======================================
+
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = {
+
     createAppointment,
+
     getAllAppointments,
+
     getAppointmentById,
+
     updateAppointment,
+
     deleteAppointment,
+
     updatePatientAppointment,
+
     cancelPatientAppointment,
+
     getPatientAppointments
 };

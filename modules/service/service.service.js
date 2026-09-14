@@ -26,6 +26,19 @@ const getAllServices = async () => {
     return services;
 };
 
+// ===============================
+// GET ACTIVE SERVICES
+// ===============================
+// Used by PUBLIC WEBSITE
+
+const getActiveServices = async () => {
+
+    const services = await Service.find({
+        status: "active"
+    }).sort({ createdAt: -1 });
+
+    return services;
+};
 
 // GET SERVICE BY ID
 
@@ -43,6 +56,27 @@ const getServiceById = async (id) => {
     return service;
 };
 
+// ===============================
+// GET ACTIVE SERVICE BY ID
+// ===============================
+// Used by PUBLIC WEBSITE
+
+const getActiveServiceById = async (id) => {
+
+    const service = await Service.findOne({
+        _id: id,
+        status: "active"
+    });
+
+    if (!service) {
+        throw new AppError(
+            "Service not found",
+            404
+        );
+    }
+
+    return service;
+};
 
 // UPDATE SERVICE
 
@@ -52,7 +86,7 @@ const updateService = async (id, updateData) => {
         id,
         updateData,
         {
-            new: true,
+            returnDocument: "after",
             runValidators: true
         }
     );
@@ -88,7 +122,9 @@ const deleteService = async (id) => {
 module.exports = {
     createService,
     getAllServices,
+    getActiveServices,
     getServiceById,
+    getActiveServiceById,
     updateService,
     deleteService
 };

@@ -36,27 +36,6 @@ router.get(
 );
 
 
-// ======================================
-// PATIENT EDIT APPOINTMENT
-// ======================================
-
-router.put(
-    "/patient/:id",
-    authMiddleware,
-    appointmentController.updatePatientAppointment
-);
-
-
-// ======================================
-// PATIENT CANCEL APPOINTMENT
-// ======================================
-
-router.patch(
-    "/patient/:id/cancel",
-    authMiddleware,
-    appointmentController.cancelPatientAppointment
-);
-
 
 // ======================================
 // GET ONE APPOINTMENT

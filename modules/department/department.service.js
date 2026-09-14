@@ -26,6 +26,19 @@ const getAllDepartments = async () => {
     return departments;
 };
 
+// ===============================
+// GET ACTIVE DEPARTMENTS
+// ===============================
+// Used by PUBLIC WEBSITE
+
+const getActiveDepartments = async () => {
+
+    const departments = await Department.find({
+        status: "active"
+    }).sort({ createdAt: -1 });
+
+    return departments;
+};
 
 // GET DEPARTMENT BY ID
 
@@ -43,6 +56,27 @@ const getDepartmentById = async (id) => {
     return department;
 };
 
+// ===============================
+// GET ACTIVE DEPARTMENT BY ID
+// ===============================
+// Used by PUBLIC WEBSITE
+
+const getActiveDepartmentById = async (id) => {
+
+    const department = await Department.findOne({
+        _id: id,
+        status: "active"
+    });
+
+    if (!department) {
+        throw new AppError(
+            "Department not found",
+            404
+        );
+    }
+
+    return department;
+};
 
 // UPDATE DEPARTMENT
 
@@ -52,7 +86,7 @@ const updateDepartment = async (id, updateData) => {
         id,
         updateData,
         {
-            new: true,
+            returnDocument: "after",
             runValidators: true
         }
     );
@@ -88,7 +122,9 @@ const deleteDepartment = async (id) => {
 module.exports = {
     createDepartment,
     getAllDepartments,
+    getActiveDepartments,
     getDepartmentById,
+    getActiveDepartmentById,
     updateDepartment,
     deleteDepartment
 };

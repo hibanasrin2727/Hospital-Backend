@@ -11,7 +11,7 @@ router.get("/", async (req, res, next) => {
     try {
 
         const doctors =
-            await doctorService.getAllDoctors();
+            await doctorService.getActiveDoctors();
 
         res.status(200).json({
             doctors
@@ -29,7 +29,7 @@ router.get("/:id", async (req, res, next) => {
     try {
 
         const doctor =
-            await doctorService.getDoctorById(
+            await doctorService.getActiveDoctorById(
                 req.params.id
             );
 

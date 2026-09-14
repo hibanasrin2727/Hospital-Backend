@@ -20,7 +20,7 @@ router.get(
     authMiddleware,
     roleMiddleware("admin"),
 
-    async (req, res) => {
+    async (req, res, next) => {
 
         try {
 
@@ -57,6 +57,16 @@ router.get(
                     status: "completed"
                 });
 
+            const rescheduledAppointments =
+                await Appointment.countDocuments({
+                    status: "rescheduled"
+                });
+
+            const cancelledAppointments =
+                await Appointment.countDocuments({
+                    status: "cancelled"
+                });
+
 
             res.status(200).json({
 
@@ -74,15 +84,17 @@ router.get(
 
                 confirmedAppointments,
 
-                completedAppointments
+                completedAppointments,
+
+                rescheduledAppointments,
+
+                cancelledAppointments
 
             });
 
         } catch (error) {
 
-            res.status(500).json({
-                message: error.message
-            });
+            next(error);
 
         }
 

@@ -218,5 +218,6 @@ module.exports = {
     updateAppointment,
     deleteAppointment,
     updatePatientAppointment,
-    cancelPatientAppointment
+    cancelPatientAppointment,
+    getPatientAppointments
 };
