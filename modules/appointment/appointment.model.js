@@ -44,7 +44,8 @@ const appointmentSchema = new mongoose.Schema(
 
         reason: {
             type: String,
-            required: true,
+            required: false,
+            maxlength: 500,
             trim: true
         },
 
@@ -58,6 +59,22 @@ const appointmentSchema = new mongoose.Schema(
                 "completed"
             ],
             default: "pending"
+        },
+
+        // =================================================
+        // CANCELLATION INFORMATION
+        // =================================================
+
+        cancellationReason: {
+            type: String,
+            default: "",
+            trim: true,
+            maxlength: 500
+        },
+
+        cancelledAt: {
+            type: Date,
+            default: null
         },
 
         notes: {

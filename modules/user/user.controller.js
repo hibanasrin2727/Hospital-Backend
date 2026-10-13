@@ -182,6 +182,52 @@ const updateUser = async (req, res, next) => {
     }
 };
 
+// UPDATE MY PROFILE
+const updateMyProfile = async (req, res, next) => {
+    try {
+        const userId =
+            req.user?.id ||
+            req.user?.userId ||
+            req.user?._id;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: "Authentication required",
+            });
+        }
+
+        // Allow patients to update only their name and phone
+        const updates = {
+            name: req.body.name,
+            phone: req.body.phone,
+        };
+
+        const user = await userService.updateUser(
+            userId,
+            updates
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                status: user.status,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 // DELETE USER
 
@@ -210,5 +256,6 @@ module.exports = {
     getUsers,
     getUser,
     updateUser,
+    updateMyProfile,
     deleteUser
 };

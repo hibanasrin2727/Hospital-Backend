@@ -21,5 +21,11 @@ router.put("/:id",authMiddleware,roleMiddleware("admin"),userController.updateUs
 
 router.delete("/:id",authMiddleware,roleMiddleware("admin"),userController.deleteUser);
 
+router.put(
+    "/me",
+    authMiddleware,
+    userController.updateMyProfile
+);
+
 
 module.exports = router;

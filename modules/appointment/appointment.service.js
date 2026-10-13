@@ -10,45 +10,259 @@ const AppError = require("../../utils/AppError");
 
 
 // =====================================================
+// CONVERT TIME TO MINUTES
+// =====================================================
+
+const convertTimeToMinutes = (timeString) => {
+
+    if (!timeString) {
+        return null;
+    }
+
+    const timeMatch = String(timeString)
+        .trim()
+        .match(
+            /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i
+        );
+
+    if (!timeMatch) {
+        return null;
+    }
+
+    let hour = parseInt(
+        timeMatch[1],
+        10
+    );
+
+    const minute = parseInt(
+        timeMatch[2],
+        10
+    );
+
+    const period = timeMatch[3];
+
+    if (minute < 0 || minute > 59) {
+        return null;
+    }
+
+    // 12-hour format
+    if (period) {
+
+        if (hour < 1 || hour > 12) {
+            return null;
+        }
+
+        const upperPeriod =
+            period.toUpperCase();
+
+        if (hour === 12) {
+            hour = 0;
+        }
+
+        if (upperPeriod === "PM") {
+            hour += 12;
+        }
+
+    } else {
+
+        // 24-hour format
+        if (hour < 0 || hour > 23) {
+            return null;
+        }
+    }
+
+    return (
+        hour * 60 + minute
+    );
+};
+
+
+// =====================================================
+// PARSE APPOINTMENT DATE + TIME
+// =====================================================
+
+const parseAppointmentDateTime = (
+    dateString,
+    timeString
+) => {
+
+    if (
+        !dateString ||
+        !timeString
+    ) {
+        return null;
+    }
+
+    const dateParts =
+        String(dateString)
+            .split("-")
+            .map(Number);
+
+    if (
+        dateParts.length !== 3 ||
+        dateParts.some(
+            (value) => Number.isNaN(value)
+        )
+    ) {
+        return null;
+    }
+
+    const [
+        year,
+        month,
+        day
+    ] = dateParts;
+
+    const timeMatch =
+        String(timeString)
+            .trim()
+            .match(
+                /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i
+            );
+
+    if (!timeMatch) {
+        return null;
+    }
+
+    let hour =
+        Number(timeMatch[1]);
+
+    const minute =
+        Number(timeMatch[2]);
+
+    const period =
+        timeMatch[3]
+            ? timeMatch[3].toUpperCase()
+            : null;
+
+    if (
+        minute < 0 ||
+        minute > 59
+    ) {
+        return null;
+    }
+
+    // 12-hour time
+    if (period) {
+
+        if (
+            hour < 1 ||
+            hour > 12
+        ) {
+            return null;
+        }
+
+        if (
+            period === "AM" &&
+            hour === 12
+        ) {
+            hour = 0;
+        }
+
+        if (
+            period === "PM" &&
+            hour !== 12
+        ) {
+            hour += 12;
+        }
+
+    } else {
+
+        // 24-hour time
+        if (
+            hour < 0 ||
+            hour > 23
+        ) {
+            return null;
+        }
+    }
+
+    const appointmentDate =
+        new Date(
+            year,
+            month - 1,
+            day,
+            hour,
+            minute,
+            0,
+            0
+        );
+
+    if (
+        Number.isNaN(
+            appointmentDate.getTime()
+        )
+    ) {
+        return null;
+    }
+
+    return appointmentDate;
+};
+
+
+// =====================================================
 // CHECK DOCTOR AVAILABILITY
 // =====================================================
 
-const isDoctorAvailable = (schedule, date, time) => {
+const isDoctorAvailable = (
+    schedule,
+    date,
+    time
+) => {
 
-    if (!schedule || !date || !time) {
+    if (
+        !schedule ||
+        !date ||
+        !time
+    ) {
         return false;
     }
 
-    const selectedDate = new Date(date);
+    const selectedDate =
+        new Date(`${date}T00:00:00`);
 
-    if (isNaN(selectedDate.getTime())) {
+    if (
+        isNaN(
+            selectedDate.getTime()
+        )
+    ) {
         return false;
     }
 
-    const selectedDay = selectedDate.toLocaleDateString(
-        "en-US",
-        {
-            weekday: "long"
-        }
-    );
+    const selectedDay =
+        selectedDate.toLocaleDateString(
+            "en-US",
+            {
+                weekday: "long"
+            }
+        );
 
     // Example:
-    // Monday-Saturday 10:00 AM-3:00 PM
     // Monday - Saturday, 10:00 AM - 3:00 PM
 
     const schedulePattern =
         /([A-Za-z]+)\s*-\s*([A-Za-z]+).*?(\d{1,2}:\d{2}\s*(?:AM|PM))\s*-\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i;
 
-    const match = schedule.match(schedulePattern);
+    const match =
+        schedule.match(
+            schedulePattern
+        );
 
     if (!match) {
         return false;
     }
 
-    const startDay = match[1];
-    const endDay = match[2];
-    const startTime = match[3];
-    const endTime = match[4];
+    const startDay =
+        match[1];
+
+    const endDay =
+        match[2];
+
+    const startTime =
+        match[3];
+
+    const endTime =
+        match[4];
 
     const days = [
         "Sunday",
@@ -60,9 +274,14 @@ const isDoctorAvailable = (schedule, date, time) => {
         "Saturday"
     ];
 
-    const startDayIndex = days.indexOf(startDay);
-    const endDayIndex = days.indexOf(endDay);
-    const selectedDayIndex = days.indexOf(selectedDay);
+    const startDayIndex =
+        days.indexOf(startDay);
+
+    const endDayIndex =
+        days.indexOf(endDay);
+
+    const selectedDayIndex =
+        days.indexOf(selectedDay);
 
     if (
         startDayIndex === -1 ||
@@ -79,7 +298,9 @@ const isDoctorAvailable = (schedule, date, time) => {
 
     let validDay = false;
 
-    if (startDayIndex <= endDayIndex) {
+    if (
+        startDayIndex <= endDayIndex
+    ) {
 
         validDay =
             selectedDayIndex >= startDayIndex &&
@@ -101,45 +322,21 @@ const isDoctorAvailable = (schedule, date, time) => {
 
 
     // =================================================
-    // CONVERT TIME TO MINUTES
+    // CONVERT TIMES
     // =================================================
-
-    const convertTimeToMinutes = (timeString) => {
-
-        const timeMatch = timeString.match(
-            /(\d{1,2}):(\d{2})\s*(AM|PM)/i
-        );
-
-        if (!timeMatch) {
-            return null;
-        }
-
-        let hour = parseInt(timeMatch[1]);
-
-        const minute = parseInt(timeMatch[2]);
-
-        const period = timeMatch[3].toUpperCase();
-
-        if (hour === 12) {
-            hour = 0;
-        }
-
-        if (period === "PM") {
-            hour += 12;
-        }
-
-        return hour * 60 + minute;
-    };
-
 
     const appointmentMinutes =
         convertTimeToMinutes(time);
 
     const scheduleStartMinutes =
-        convertTimeToMinutes(startTime);
+        convertTimeToMinutes(
+            startTime
+        );
 
     const scheduleEndMinutes =
-        convertTimeToMinutes(endTime);
+        convertTimeToMinutes(
+            endTime
+        );
 
     if (
         appointmentMinutes === null ||
@@ -149,30 +346,57 @@ const isDoctorAvailable = (schedule, date, time) => {
         return false;
     }
 
+
+    // =================================================
+    // CHECK TIME RANGE
+    // =================================================
+
     return (
-        appointmentMinutes >= scheduleStartMinutes &&
-        appointmentMinutes <= scheduleEndMinutes
+        appointmentMinutes >=
+        scheduleStartMinutes &&
+        appointmentMinutes <=
+        scheduleEndMinutes
     );
 };
 
 
 // =====================================================
-// VALIDATE FUTURE DATE
+// VALIDATE FUTURE DATE AND TIME
 // =====================================================
 
-const isValidFutureDate = (date) => {
+const isValidFutureDateTime = (
+    date,
+    time
+) => {
 
-    if (!date) {
+    if (!date || !time) {
         return false;
     }
 
-    const selectedDate = new Date(date);
+    const selectedDate =
+        new Date(`${date}T00:00:00`);
 
-    if (isNaN(selectedDate.getTime())) {
+    if (
+        isNaN(
+            selectedDate.getTime()
+        )
+    ) {
         return false;
     }
 
-    const today = new Date();
+    const appointmentMinutes =
+        convertTimeToMinutes(time);
+
+    if (
+        appointmentMinutes === null
+    ) {
+        return false;
+    }
+
+    const now = new Date();
+
+    const today =
+        new Date();
 
     today.setHours(
         0,
@@ -181,14 +405,30 @@ const isValidFutureDate = (date) => {
         0
     );
 
-    selectedDate.setHours(
-        0,
-        0,
-        0,
-        0
-    );
+    // Past date
+    if (selectedDate < today) {
+        return false;
+    }
 
-    return selectedDate >= today;
+    // Today → check the time too
+    if (
+        selectedDate.getTime() ===
+        today.getTime()
+    ) {
+
+        const currentMinutes =
+            now.getHours() * 60 +
+            now.getMinutes();
+
+        if (
+            appointmentMinutes <=
+            currentMinutes
+        ) {
+            return false;
+        }
+    }
+
+    return true;
 };
 
 
@@ -196,7 +436,9 @@ const isValidFutureDate = (date) => {
 // CREATE APPOINTMENT
 // =====================================================
 
-const createAppointment = async (appointmentData) => {
+const createAppointment = async (
+    appointmentData
+) => {
 
     const {
         patientId,
@@ -217,9 +459,9 @@ const createAppointment = async (appointmentData) => {
         !doctorId ||
         !departmentId ||
         !date ||
-        !time ||
-        !reason
+        !time
     ) {
+
         throw new AppError(
             "All required appointment fields must be provided",
             400
@@ -231,16 +473,15 @@ const createAppointment = async (appointmentData) => {
     // VALIDATE REASON
     // =================================================
 
-    const trimmedReason = String(reason).trim();
+    const trimmedReason =
+        String(
+            reason || ""
+        ).trim();
 
-    if (trimmedReason.length < 3) {
-        throw new AppError(
-            "Reason must contain at least 3 characters",
-            400
-        );
-    }
+    if (
+        trimmedReason.length > 500
+    ) {
 
-    if (trimmedReason.length > 500) {
         throw new AppError(
             "Reason cannot exceed 500 characters",
             400
@@ -252,9 +493,15 @@ const createAppointment = async (appointmentData) => {
     // VALIDATE DATE
     // =================================================
 
-    if (!isValidFutureDate(date)) {
+    if (
+        !isValidFutureDateTime(
+            date,
+            time
+        )
+    ) {
+
         throw new AppError(
-            "Appointment date must be today or a future date",
+            "Appointment date and time must be today or a future date",
             400
         );
     }
@@ -264,13 +511,15 @@ const createAppointment = async (appointmentData) => {
     // CHECK PATIENT
     // =================================================
 
-    const patient = await User.findOne({
-        _id: patientId,
-        role: "patient",
-        status: "active"
-    });
+    const patient =
+        await User.findOne({
+            _id: patientId,
+            role: "patient",
+            status: "active"
+        });
 
     if (!patient) {
+
         throw new AppError(
             "Active patient not found",
             404
@@ -282,12 +531,14 @@ const createAppointment = async (appointmentData) => {
     // CHECK DOCTOR
     // =================================================
 
-    const doctor = await Doctor.findOne({
-        _id: doctorId,
-        status: "active"
-    });
+    const doctor =
+        await Doctor.findOne({
+            _id: doctorId,
+            status: "active"
+        });
 
     if (!doctor) {
+
         throw new AppError(
             "Doctor not found or inactive",
             404
@@ -299,12 +550,14 @@ const createAppointment = async (appointmentData) => {
     // CHECK DEPARTMENT
     // =================================================
 
-    const department = await Department.findOne({
-        _id: departmentId,
-        status: "active"
-    });
+    const department =
+        await Department.findOne({
+            _id: departmentId,
+            status: "active"
+        });
 
     if (!department) {
+
         throw new AppError(
             "Department not found or inactive",
             404
@@ -320,6 +573,7 @@ const createAppointment = async (appointmentData) => {
         doctor.departmentId.toString() !==
         departmentId.toString()
     ) {
+
         throw new AppError(
             "Doctor does not belong to the selected department",
             400
@@ -338,6 +592,7 @@ const createAppointment = async (appointmentData) => {
             time
         )
     ) {
+
         throw new AppError(
             "Doctor is not available at the selected date and time",
             400
@@ -363,6 +618,7 @@ const createAppointment = async (appointmentData) => {
         });
 
     if (existingAppointment) {
+
         throw new AppError(
             "This appointment slot is already booked",
             409
@@ -374,27 +630,37 @@ const createAppointment = async (appointmentData) => {
     // CREATE APPOINTMENT
     // =================================================
 
-    const appointment = await Appointment.create({
+    const appointment =
+        await Appointment.create({
 
-        patientId,
+            patientId,
 
-        // Get patient details from database
-        patientName: patient.name,
+            patientName:
+                patient.name,
 
-        phone: patient.phone,
+            phone:
+                patient.phone,
 
-        doctorId,
+            doctorId,
 
-        departmentId,
+            departmentId,
 
-        date,
+            date,
 
-        time,
+            time,
 
-        reason: trimmedReason,
+            reason:
+                trimmedReason,
 
-        status: "pending"
-    });
+            status:
+                "pending",
+
+            cancellationReason:
+                "",
+
+            cancelledAt:
+                null
+        });
 
     return appointment;
 };
@@ -406,16 +672,17 @@ const createAppointment = async (appointmentData) => {
 
 const getAllAppointments = async () => {
 
-    const appointments = await Appointment.find()
-        .populate(
-            "patientId",
-            "-password"
-        )
-        .populate("doctorId")
-        .populate("departmentId")
-        .sort({
-            createdAt: -1
-        });
+    const appointments =
+        await Appointment.find()
+            .populate(
+                "patientId",
+                "-password"
+            )
+            .populate("doctorId")
+            .populate("departmentId")
+            .sort({
+                createdAt: -1
+            });
 
     return appointments;
 };
@@ -425,17 +692,21 @@ const getAllAppointments = async () => {
 // GET APPOINTMENT BY ID
 // =====================================================
 
-const getAppointmentById = async (id) => {
+const getAppointmentById = async (
+    id
+) => {
 
-    const appointment = await Appointment.findById(id)
-        .populate(
-            "patientId",
-            "-password"
-        )
-        .populate("doctorId")
-        .populate("departmentId");
+    const appointment =
+        await Appointment.findById(id)
+            .populate(
+                "patientId",
+                "-password"
+            )
+            .populate("doctorId")
+            .populate("departmentId");
 
     if (!appointment) {
+
         throw new AppError(
             "Appointment not found",
             404
@@ -455,9 +726,11 @@ const updateAppointment = async (
     updateData
 ) => {
 
-    const appointment = await Appointment.findById(id);
+    const appointment =
+        await Appointment.findById(id);
 
     if (!appointment) {
+
         throw new AppError(
             "Appointment not found",
             404
@@ -481,13 +754,19 @@ const updateAppointment = async (
 
     const safeUpdateData = {};
 
-    allowedFields.forEach((field) => {
+    allowedFields.forEach(
+        (field) => {
 
-        if (updateData[field] !== undefined) {
-            safeUpdateData[field] =
-                updateData[field];
+            if (
+                updateData[field] !==
+                undefined
+            ) {
+
+                safeUpdateData[field] =
+                    updateData[field];
+            }
         }
-    });
+    );
 
 
     // =================================================
@@ -521,7 +800,8 @@ const updateAppointment = async (
 
     if (
         safeUpdateData.status &&
-        safeUpdateData.status !== appointment.status
+        safeUpdateData.status !==
+        appointment.status
     ) {
 
         const allowedNextStatuses =
@@ -534,6 +814,7 @@ const updateAppointment = async (
                 safeUpdateData.status
             )
         ) {
+
             throw new AppError(
                 `Cannot change appointment status from ${appointment.status} to ${safeUpdateData.status}`,
                 400
@@ -543,18 +824,31 @@ const updateAppointment = async (
 
 
     // =================================================
-    // VALIDATE DATE
+    // VALIDATE DATE AND TIME
     // =================================================
 
-    if (safeUpdateData.date) {
+    if (
+        safeUpdateData.date ||
+        safeUpdateData.time
+    ) {
+
+        const appointmentDate =
+            safeUpdateData.date ||
+            appointment.date;
+
+        const appointmentTime =
+            safeUpdateData.time ||
+            appointment.time;
 
         if (
-            !isValidFutureDate(
-                safeUpdateData.date
+            !isValidFutureDateTime(
+                appointmentDate,
+                appointmentTime
             )
         ) {
+
             throw new AppError(
-                "Appointment date must be today or a future date",
+                "Appointment date and time must be in the future",
                 400
             );
         }
@@ -566,7 +860,8 @@ const updateAppointment = async (
     // =================================================
 
     if (
-        safeUpdateData.reason !== undefined
+        safeUpdateData.reason !==
+        undefined
     ) {
 
         const reason =
@@ -574,21 +869,18 @@ const updateAppointment = async (
                 safeUpdateData.reason
             ).trim();
 
-        if (reason.length < 3) {
-            throw new AppError(
-                "Reason must contain at least 3 characters",
-                400
-            );
-        }
+        if (
+            reason.length > 500
+        ) {
 
-        if (reason.length > 500) {
             throw new AppError(
                 "Reason cannot exceed 500 characters",
                 400
             );
         }
 
-        safeUpdateData.reason = reason;
+        safeUpdateData.reason =
+            reason;
     }
 
 
@@ -626,12 +918,14 @@ const updateAppointment = async (
         // CHECK DOCTOR
         // =============================================
 
-        const doctor = await Doctor.findOne({
-            _id: doctorId,
-            status: "active"
-        });
+        const doctor =
+            await Doctor.findOne({
+                _id: doctorId,
+                status: "active"
+            });
 
         if (!doctor) {
+
             throw new AppError(
                 "Doctor not found or inactive",
                 404
@@ -650,6 +944,7 @@ const updateAppointment = async (
             });
 
         if (!department) {
+
             throw new AppError(
                 "Department not found or inactive",
                 404
@@ -665,6 +960,7 @@ const updateAppointment = async (
             doctor.departmentId.toString() !==
             departmentId.toString()
         ) {
+
             throw new AppError(
                 "Doctor does not belong to the selected department",
                 400
@@ -683,6 +979,7 @@ const updateAppointment = async (
                 time
             )
         ) {
+
             throw new AppError(
                 "Doctor is not available at the selected date and time",
                 400
@@ -716,6 +1013,7 @@ const updateAppointment = async (
             });
 
         if (conflict) {
+
             throw new AppError(
                 "This appointment slot is already booked",
                 409
@@ -739,8 +1037,8 @@ const updateAppointment = async (
         )
             .populate(
                 "patientId",
-            "-password"
-        )
+                "-password"
+            )
             .populate("doctorId")
             .populate("departmentId");
 
@@ -750,15 +1048,140 @@ const updateAppointment = async (
 
 
 // =====================================================
+// ADMIN CANCEL APPOINTMENT
+// =====================================================
+
+const cancelAppointmentByAdmin = async (
+    id,
+    cancellationReason
+) => {
+
+    const appointment =
+        await Appointment.findById(id);
+
+    if (!appointment) {
+
+        throw new AppError(
+            "Appointment not found",
+            404
+        );
+    }
+
+
+    // =================================================
+    // ALREADY CANCELLED
+    // =================================================
+
+    if (
+        appointment.status ===
+        "cancelled"
+    ) {
+
+        throw new AppError(
+            "Appointment is already cancelled",
+            400
+        );
+    }
+
+
+    // =================================================
+    // COMPLETED CANNOT BE CANCELLED
+    // =================================================
+
+    if (
+        appointment.status ===
+        "completed"
+    ) {
+
+        throw new AppError(
+            "Completed appointments cannot be cancelled",
+            400
+        );
+    }
+
+
+    // =================================================
+    // VALIDATE CANCELLATION REASON
+    // =================================================
+
+    const reason =
+        String(
+            cancellationReason ||
+            ""
+        ).trim();
+
+    if (!reason) {
+
+        throw new AppError(
+            "Cancellation reason is required",
+            400
+        );
+    }
+
+    if (
+        reason.length > 500
+    ) {
+
+        throw new AppError(
+            "Cancellation reason cannot exceed 500 characters",
+            400
+        );
+    }
+
+
+    // =================================================
+    // CANCEL
+    // =================================================
+
+    appointment.status =
+        "cancelled";
+
+    appointment.cancellationReason =
+        reason;
+
+    appointment.cancelledAt =
+        new Date();
+
+    await appointment.save();
+
+
+    // =================================================
+    // POPULATE
+    // =================================================
+
+    await appointment.populate([
+        {
+            path: "patientId",
+            select: "-password"
+        },
+        {
+            path: "doctorId"
+        },
+        {
+            path: "departmentId"
+        }
+    ]);
+
+
+    return appointment;
+};
+
+
+// =====================================================
 // DELETE APPOINTMENT
 // =====================================================
 
-const deleteAppointment = async (id) => {
+const deleteAppointment = async (
+    id
+) => {
 
     const appointment =
-        await Appointment.findByIdAndDelete(id);
+        await Appointment.findByIdAndDelete(
+            id
+        );
 
     if (!appointment) {
+
         throw new AppError(
             "Appointment not found",
             404
@@ -790,6 +1213,7 @@ const updatePatientAppointment = async (
         });
 
     if (!appointment) {
+
         throw new AppError(
             "Appointment not found",
             404
@@ -802,9 +1226,12 @@ const updatePatientAppointment = async (
     // =================================================
 
     if (
-        appointment.status === "completed" ||
-        appointment.status === "cancelled"
+        appointment.status ===
+        "completed" ||
+        appointment.status ===
+        "cancelled"
     ) {
+
         throw new AppError(
             "This appointment cannot be edited",
             400
@@ -829,11 +1256,11 @@ const updatePatientAppointment = async (
         !doctorId ||
         !departmentId ||
         !date ||
-        !time ||
-        !reason
+        !time
     ) {
+
         throw new AppError(
-            "Doctor, department, date, time and reason are required",
+            "Doctor, department, date and time are required",
             400
         );
     }
@@ -843,9 +1270,15 @@ const updatePatientAppointment = async (
     // VALIDATE DATE
     // =================================================
 
-    if (!isValidFutureDate(date)) {
+    if (
+        !isValidFutureDateTime(
+            date,
+            time
+        )
+    ) {
+
         throw new AppError(
-            "Appointment date must be today or a future date",
+            "Appointment date and time must be today or a future date",
             400
         );
     }
@@ -856,16 +1289,14 @@ const updatePatientAppointment = async (
     // =================================================
 
     const trimmedReason =
-        String(reason).trim();
+        String(
+            reason || ""
+        ).trim();
 
-    if (trimmedReason.length < 3) {
-        throw new AppError(
-            "Reason must contain at least 3 characters",
-            400
-        );
-    }
+    if (
+        trimmedReason.length > 500
+    ) {
 
-    if (trimmedReason.length > 500) {
         throw new AppError(
             "Reason cannot exceed 500 characters",
             400
@@ -877,12 +1308,14 @@ const updatePatientAppointment = async (
     // CHECK DOCTOR
     // =================================================
 
-    const doctor = await Doctor.findOne({
-        _id: doctorId,
-        status: "active"
-    });
+    const doctor =
+        await Doctor.findOne({
+            _id: doctorId,
+            status: "active"
+        });
 
     if (!doctor) {
+
         throw new AppError(
             "Doctor not found or inactive",
             404
@@ -901,6 +1334,7 @@ const updatePatientAppointment = async (
         });
 
     if (!department) {
+
         throw new AppError(
             "Department not found or inactive",
             404
@@ -916,6 +1350,7 @@ const updatePatientAppointment = async (
         doctor.departmentId.toString() !==
         departmentId.toString()
     ) {
+
         throw new AppError(
             "Doctor does not belong to the selected department",
             400
@@ -934,6 +1369,7 @@ const updatePatientAppointment = async (
             time
         )
     ) {
+
         throw new AppError(
             "Doctor is not available at the selected date and time",
             400
@@ -967,6 +1403,7 @@ const updatePatientAppointment = async (
         });
 
     if (conflict) {
+
         throw new AppError(
             "This appointment slot is already booked",
             409
@@ -994,9 +1431,9 @@ const updatePatientAppointment = async (
             }
         )
             .populate(
-            "patientId",
-            "-password"
-        )
+                "patientId",
+                "-password"
+            )
             .populate("doctorId")
             .populate("departmentId");
 
@@ -1025,6 +1462,7 @@ const cancelPatientAppointment = async (
         });
 
     if (!appointment) {
+
         throw new AppError(
             "Appointment not found",
             404
@@ -1037,8 +1475,10 @@ const cancelPatientAppointment = async (
     // =================================================
 
     if (
-        appointment.status === "cancelled"
+        appointment.status ===
+        "cancelled"
     ) {
+
         throw new AppError(
             "Appointment is already cancelled",
             400
@@ -1051,8 +1491,10 @@ const cancelPatientAppointment = async (
     // =================================================
 
     if (
-        appointment.status === "completed"
+        appointment.status ===
+        "completed"
     ) {
+
         throw new AppError(
             "Completed appointment cannot be cancelled",
             400
@@ -1068,7 +1510,14 @@ const cancelPatientAppointment = async (
         await Appointment.findByIdAndUpdate(
             id,
             {
-                status: "cancelled"
+                status:
+                    "cancelled",
+
+                cancellationReason:
+                    "",
+
+                cancelledAt:
+                    new Date()
             },
             {
                 returnDocument: "after",
@@ -1110,6 +1559,105 @@ const getPatientAppointments = async (
 
 
 // =====================================================
+// AUTOMATICALLY CANCEL EXPIRED APPOINTMENTS
+// =====================================================
+
+const autoCancelExpiredAppointments =
+    async () => {
+
+        try {
+
+            const appointments =
+                await Appointment.find({
+                    status: {
+                        $in: [
+                            "pending",
+                            "confirmed"
+                        ]
+                    }
+                });
+
+
+            const now =
+                new Date();
+
+
+            for (
+                const appointment
+                of appointments
+            ) {
+
+                // =========================================
+                // GET APPOINTMENT DATE + TIME
+                // =========================================
+
+                const appointmentDateTime =
+                    parseAppointmentDateTime(
+                        appointment.date,
+                        appointment.time
+                    );
+
+
+                // =========================================
+                // INVALID DATE/TIME
+                // =========================================
+
+                if (!appointmentDateTime) {
+                    continue;
+                }
+
+
+                // =========================================
+                // 60-MINUTE GRACE PERIOD
+                // =========================================
+
+                const gracePeriodEnd =
+                    new Date(
+                        appointmentDateTime.getTime() +
+                        60 * 60 * 1000
+                    );
+
+
+                // =========================================
+                // AUTO CANCEL AFTER GRACE PERIOD
+                // =========================================
+
+                if (
+                    gracePeriodEnd <= now
+                ) {
+
+                    appointment.status =
+                        "cancelled";
+
+
+                    appointment.cancellationReason =
+                        "This appointment was automatically cancelled because the scheduled appointment time passed and the 60-minute grace period ended.";
+
+
+                    appointment.cancelledAt =
+                        new Date();
+
+
+                    await appointment.save();
+
+
+                    console.log(
+                        `Appointment ${appointment._id} automatically cancelled after the 60-minute grace period.`
+                    );
+                }
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Automatic appointment cancellation error:",
+                error.message
+            );
+        }
+    };
+
+
+// =====================================================
 // EXPORT
 // =====================================================
 
@@ -1123,11 +1671,15 @@ module.exports = {
 
     updateAppointment,
 
+    cancelAppointmentByAdmin,
+
     deleteAppointment,
 
     updatePatientAppointment,
 
     cancelPatientAppointment,
 
-    getPatientAppointments
+    getPatientAppointments,
+
+    autoCancelExpiredAppointments
 };

@@ -2,9 +2,16 @@ const appointmentService =
     require("./appointment.service");
 
 
+// =====================================================
 // CREATE APPOINTMENT
+// =====================================================
 
-const createAppointment = async (req, res, next) => {
+const createAppointment = async (
+    req,
+    res,
+    next
+) => {
+
     try {
 
         const appointment =
@@ -13,7 +20,8 @@ const createAppointment = async (req, res, next) => {
             );
 
         res.status(201).json({
-            message: "Appointment created successfully",
+            message:
+                "Appointment created successfully",
             appointment
         });
 
@@ -25,9 +33,16 @@ const createAppointment = async (req, res, next) => {
 };
 
 
+// =====================================================
 // GET ALL APPOINTMENTS
+// =====================================================
 
-const getAppointments = async (req, res, next) => {
+const getAppointments = async (
+    req,
+    res,
+    next
+) => {
+
     try {
 
         const appointments =
@@ -45,9 +60,16 @@ const getAppointments = async (req, res, next) => {
 };
 
 
+// =====================================================
 // GET APPOINTMENT BY ID
+// =====================================================
 
-const getAppointment = async (req, res, next) => {
+const getAppointment = async (
+    req,
+    res,
+    next
+) => {
+
     try {
 
         const appointment =
@@ -67,9 +89,16 @@ const getAppointment = async (req, res, next) => {
 };
 
 
+// =====================================================
 // UPDATE APPOINTMENT
+// =====================================================
 
-const updateAppointment = async (req, res, next) => {
+const updateAppointment = async (
+    req,
+    res,
+    next
+) => {
+
     try {
 
         const appointment =
@@ -79,7 +108,8 @@ const updateAppointment = async (req, res, next) => {
             );
 
         res.status(200).json({
-            message: "Appointment updated successfully",
+            message:
+                "Appointment updated successfully",
             appointment
         });
 
@@ -91,9 +121,49 @@ const updateAppointment = async (req, res, next) => {
 };
 
 
-// DELETE APPOINTMENT
+// =====================================================
+// ADMIN CANCEL APPOINTMENT
+// =====================================================
 
-const deleteAppointment = async (req, res, next) => {
+const cancelAppointmentByAdmin =
+    async (
+        req,
+        res,
+        next
+    ) => {
+
+        try {
+
+            const appointment =
+                await appointmentService.cancelAppointmentByAdmin(
+                    req.params.id,
+                    req.body.cancellationReason
+                );
+
+            res.status(200).json({
+                message:
+                    "Appointment cancelled successfully",
+                appointment
+            });
+
+        } catch (error) {
+
+            next(error);
+
+        }
+    };
+
+
+// =====================================================
+// DELETE APPOINTMENT
+// =====================================================
+
+const deleteAppointment = async (
+    req,
+    res,
+    next
+) => {
+
     try {
 
         await appointmentService.deleteAppointment(
@@ -101,7 +171,8 @@ const deleteAppointment = async (req, res, next) => {
         );
 
         res.status(200).json({
-            message: "Appointment deleted successfully"
+            message:
+                "Appointment deleted successfully"
         });
 
     } catch (error) {
@@ -112,112 +183,120 @@ const deleteAppointment = async (req, res, next) => {
 };
 
 
-// ======================================
+// =====================================================
 // PATIENT EDIT OWN APPOINTMENT
-// ======================================
+// =====================================================
 
-const updatePatientAppointment = async (
-    req,
-    res,
-    next
-) => {
+const updatePatientAppointment =
+    async (
+        req,
+        res,
+        next
+    ) => {
 
-    try {
+        try {
 
-        const appointment =
-            await appointmentService.updatePatientAppointment(
-                req.params.id,
-                req.user.userId,
-                req.body
-            );
+            const appointment =
+                await appointmentService.updatePatientAppointment(
+                    req.params.id,
+                    req.user.userId,
+                    req.body
+                );
 
+            res.status(200).json({
+                message:
+                    "Appointment updated successfully",
+                appointment
+            });
 
-        res.status(200).json({
+        } catch (error) {
 
-            message:
-                "Appointment updated successfully",
+            next(error);
 
-            appointment
-
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-};
+        }
+    };
 
 
-// ======================================
+// =====================================================
 // PATIENT CANCEL OWN APPOINTMENT
-// ======================================
+// =====================================================
 
-const cancelPatientAppointment = async (
-    req,
-    res,
-    next
-) => {
+const cancelPatientAppointment =
+    async (
+        req,
+        res,
+        next
+    ) => {
 
-    try {
+        try {
 
-        const appointment =
-            await appointmentService.cancelPatientAppointment(
-                req.params.id,
-                req.user.userId
-            );
+            const appointment =
+                await appointmentService.cancelPatientAppointment(
+                    req.params.id,
+                    req.user.userId
+                );
 
-        res.status(200).json({
+            res.status(200).json({
+                message:
+                    "Appointment cancelled successfully",
+                appointment
+            });
 
-            message:
-                "Appointment cancelled successfully",
+        } catch (error) {
 
-            appointment
+            next(error);
 
-        });
-
-    } catch (error) {
-
-        next(error);
-
-    }
-};
+        }
+    };
 
 
-// ======================================
+// =====================================================
 // PATIENT GET OWN APPOINTMENTS
-// ======================================
+// =====================================================
 
-const getPatientAppointments = async (
-    req,
-    res,
-    next
-) => {
+const getPatientAppointments =
+    async (
+        req,
+        res,
+        next
+    ) => {
 
-    try {
+        try {
 
-        const appointments =
-            await appointmentService.getPatientAppointments(
-                req.user.userId
-            );
+            const appointments =
+                await appointmentService.getPatientAppointments(
+                    req.user.userId
+                );
 
-        res.status(200).json({
-            appointments
-        });
+            res.status(200).json({
+                appointments
+            });
 
-    } catch (error) {
+        } catch (error) {
 
-        next(error);
+            next(error);
 
-    }
-};
+        }
+    };
+
+
 module.exports = {
+
     createAppointment,
+
     getAppointments,
+
     getAppointment,
+
     updateAppointment,
+
+    cancelAppointmentByAdmin,
+
     deleteAppointment,
+
     updatePatientAppointment,
+
     cancelPatientAppointment,
+
     getPatientAppointments
 };
